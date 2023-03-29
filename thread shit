@@ -1,0 +1,89 @@
+#include <iostream>
+#include <pthread.h>
+#include <time.h>
+
+
+#define MAX 20
+#define THREAD_MAX 4
+
+using namespace std;
+int a[MAX];
+int part = 0;
+void merge(int start, int mid, int end){
+	int* left = new int[mid - start + 1];
+	int* right = new int[end - mid];
+	int n1 = mid - start + 1, n2 = end - mid, i, j;
+	for (i = 0; i < n1; i++)
+		left[i] = a[i + start];
+
+	for (i = 0; i < n2; i++)
+		right[i] = a[i + mid + 1];
+
+	int k = start;
+	i = j = 0;
+
+	while (i < n1 && j < n2) {
+		if (left[i] <= right[j])
+			a[k++] = left[i++];
+		else
+			a[k++] = right[j++];
+	}
+	while (i < n1) {
+		a[k++] = left[i++];
+	}
+	while (j < n2) {
+		a[k++] = right[j++];
+	}
+}
+
+
+void merge_sort(int start, int end){
+	int mid = start + (end - start) / 2;
+	if (start < end) {
+		merge_sort(start, mid);
+		merge_sort(mid + 1, end);
+		merge(start, mid, end);
+	}
+}
+
+
+void* merge_sort(void* arg){
+	int thread_part = part++;
+	int start = thread_part * (MAX / 4);
+	int end = (thread_part + 1) * (MAX / 4) - 1;
+	int mid = start + (end - start) / 2;
+	if (start < end) {
+		merge_sort(start, mid);
+		merge_sort(mid + 1, end);
+		merge(start, mid, end);
+	}
+	return 0;
+}
+
+
+int main()
+{
+	
+	for (int i = 0; i < MAX; i++)
+		a[i] = rand() % 100;
+		
+	pthread_t threads[THREAD_MAX];
+	for (int i = 0; i < THREAD_MAX; i++)
+		pthread_create(&threads[i], NULL, merge_sort,(void*)NULL);
+		
+	for (int i = 0; i < 4; i++)
+		pthread_join(threads[i], NULL);
+
+// 	for(int i = 0; i < MAX; i++){
+// 	    cout<< a[i] << " ";
+// 	}
+	    
+	merge(0, (MAX / 2 - 1) / 2, MAX / 2 - 1);
+	merge(MAX / 2, MAX/2 + (MAX-1-MAX/2)/2, MAX - 1);
+	merge(0, (MAX - 1)/2, MAX - 1);
+	cout << "\nSorted array: ";
+	for (int i = 0; i < MAX; i++)
+		cout << a[i] << " ";
+		
+	return 0;
+}
